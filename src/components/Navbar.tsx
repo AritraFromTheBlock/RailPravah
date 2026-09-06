@@ -1,20 +1,20 @@
-
 import { Link } from "react-router-dom";
+import Logo from "./Logo";
 
 function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-
-        <Link to="/" className="logo">
-          <span className="logo-icon">🚆</span>
-          <span className="logo-text">RailPravah</span>
+        <Link to="/" className="logo" style={{ textDecoration: "none" }}>
+          <Logo size={32} />
         </Link>
 
         <div className="nav-links">
           <Link to="/">Home</Link>
-          <Link to="/search">Trains</Link>
-          <Link to="/live-status">Live Status</Link>
+          <Link to="/block-planning">Block Planning</Link>
+          <Link to="/maintenance-requests">Requests</Link>
+          <Link to="/corridor-map">Corridor Map</Link>
+          <Link to="/dashboard">Dashboard</Link>
         </div>
 
         <div className="nav-actions">
@@ -22,11 +22,10 @@ function Navbar() {
             Login
           </Link>
 
-          <Link to="/login" className="get-started-btn">
-            Get Started
+          <Link to="/dashboard" className="get-started-btn">
+            Dashboard
           </Link>
         </div>
-
       </div>
     </nav>
   );

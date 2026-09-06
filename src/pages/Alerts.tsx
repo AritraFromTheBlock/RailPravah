@@ -1,114 +1,108 @@
 import { useState } from "react";
-
-type AlertType = "Critical" | "Warning" | "Info";
-
-type Alert = {
-  id: number;
-  type: AlertType;
-  title: string;
-  message: string;
-  time: string;
-};
+import { useAssetData } from "../contexts/AssetContext";
 
 function Alerts() {
-  const [alerts, setAlerts] = useState<Alert[]>([
-    {
-      id: 1,
-      type: "Critical",
-      title: "Train Delay Detected",
-      message: "Train 12841 is delayed by approximately 35 minutes.",
-      time: "5 min ago",
-    },
-    {
-      id: 2,
-      type: "Warning",
-      title: "Platform Change",
-      message: "Train 12301 has been moved from Platform 4 to Platform 5.",
-      time: "18 min ago",
-    },
-    {
-      id: 3,
-      type: "Info",
-      title: "Schedule Updated",
-      message: "The schedule for tomorrow's trains has been updated.",
-      time: "42 min ago",
-    },
-  ]);
+  const { data, loading, error } = useAssetData();
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
-  const removeAlert = (id: number) => {
-    setAlerts(alerts.filter((alert) => alert.id !== id));
+  if (loading) {
+    return (
+      <div className="page-layout" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <h2 style={{ color: 'var(--text-muted)' }}>Loading Alerts Data...</h2>
+      </div>
+    );
+  }
+
+  // Generate alerts dynamically from dataset based on condition ratings and failure flags
+  const activeAlerts = data
+    .filter(a => (a.failure_within_30_days === 1 || a.condition_rating <= 2.0) && !dismissed.has(a.asset_id))
+    .sort((a, b) => b.urgency_score - a.urgency_score)
+    .slice(0, 15); // Top 15 alerts
+
+  const dismissAlert = (id: string) => {
+    setDismissed(prev => {
+      const newSet = new Set(prev);
+      newSet.add(id);
+      return newSet;
+    });
   };
 
   return (
-    <section className="alerts-page">
-      <div className="alerts-container">
+    <div className="page-layout">
+      <header className="content-header">
+        <div>
+          <p className="eyebrow">MANAGEMENT</p>
+          <h1>System Alerts</h1>
+          <p className="subtitle">Real-time notifications for critical asset degradation and imminent failures.</p>
+        </div>
+      </header>
 
-        <div className="alerts-header">
+      <section className="panel" style={{ maxWidth: '800px' }}>
+        <div className="panel-header">
           <div>
-            <p className="section-tag">🔔 SYSTEM NOTIFICATIONS</p>
-
-            <h1>
-              Railway <span>Alerts</span>
-            </h1>
-
-            <p>
-              Important updates and operational notifications.
-            </p>
-          </div>
-
-          <div className="alert-count">
-            {alerts.length} Active
+            <h2>Active Alerts</h2>
+            <p>Showing top critical alerts requiring attention.</p>
           </div>
         </div>
 
-        <div className="alerts-list">
-
-          {alerts.length > 0 ? (
-            alerts.map((alert) => (
-              <div
-                className={`alert-card ${alert.type.toLowerCase()}`}
-                key={alert.id}
-              >
-
-                <div className="alert-icon">
-                  {alert.type === "Critical"
-                    ? "🚨"
-                    : alert.type === "Warning"
-                    ? "⚠️"
-                    : "ℹ️"}
-                </div>
-
-                <div className="alert-content">
-                  <div className="alert-title-row">
-                    <h3>{alert.title}</h3>
-                    <span>{alert.type}</span>
-                  </div>
-
-                  <p>{alert.message}</p>
-
-                  <small>{alert.time}</small>
-                </div>
-
-                <button
-                  className="dismiss-alert"
-                  onClick={() => removeAlert(alert.id)}
-                >
-                  ×
-                </button>
-
-              </div>
-            ))
+        <div className="alerts" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {activeAlerts.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>No active alerts.</p>
           ) : (
-            <div className="no-alerts">
-              <h2>🎉 No Active Alerts</h2>
-              <p>Everything looks good right now.</p>
-            </div>
+            activeAlerts.map((alert) => {
+              const isCritical = alert.failure_within_30_days === 1;
+              return (
+                <div
+                  key={alert.asset_id}
+                  className={`alert ${isCritical ? 'error' : 'warning'}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    backgroundColor: isCritical ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                    border: `1px solid ${isCritical ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                    padding: '16px',
+                    borderRadius: '8px'
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                    <span style={{ fontSize: '1.5rem' }}>
+                      {isCritical ? '🚨' : '⚠️'}
+                    </span>
+                    <div>
+                      <strong style={{ color: isCritical ? '#ef4444' : '#f59e0b', fontSize: '1.05rem', display: 'block', marginBottom: '4px' }}>
+                        {isCritical ? "Imminent Failure Detected" : "Severe Degradation"}
+                      </strong>
+                      <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem', lineHeight: '1.4' }}>
+                        {alert.asset_type.replace(/_/g, ' ')} ({alert.asset_id}) in the {alert.zone} zone 
+                        {isCritical 
+                          ? " is flagged for failure within 30 days." 
+                          : ` shows a critical condition rating of ${alert.condition_rating.toFixed(1)}/5.`}
+                        <br/>
+                        Urgency Score: {alert.urgency_score.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => dismissAlert(alert.asset_id)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '4px'
+                    }}
+                    title="Dismiss"
+                  >
+                    ✕
+                  </button>
+                </div>
+              );
+            })
           )}
-
         </div>
-
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 

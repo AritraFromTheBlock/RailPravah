@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import Logo from "../components/Logo";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -13,17 +14,8 @@ function Dashboard() {
 
         {/* ================= LOGO ================= */}
 
-        <div className="logo">
-
-          <div className="logo-icon">
-            🚆
-          </div>
-
-          <div>
-            <h2>RailPravah</h2>
-            <span>Railway Intelligence</span>
-          </div>
-
+        <div className="logo" style={{ padding: '4px 12px 30px' }}>
+          <Logo size={36} />
         </div>
 
 

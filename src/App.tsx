@@ -25,6 +25,8 @@ import BlockPlanning from "./pages/BlockPlanning";
 import CorridorMap from "./pages/CorridorMap";
 import Reports from "./pages/Reports";
 
+import { AssetProvider } from "./contexts/AssetContext";
+
 function App() {
   return (
     <BrowserRouter>
@@ -45,7 +47,7 @@ function App() {
 
         {/* ================= DASHBOARD LAYOUT ================= */}
 
-        <Route element={<Dashboard />}>
+        <Route element={<AssetProvider><Dashboard /></AssetProvider>}>
 
           {/* Dashboard Home */}
           <Route

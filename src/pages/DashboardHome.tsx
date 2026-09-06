@@ -1,712 +1,254 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAssetData } from "../contexts/AssetContext";
 
 function DashboardHome() {
-
   const navigate = useNavigate();
+  const { data, loading, error } = useAssetData();
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  const toggleTheme = () => {
+    const layout = document.querySelector('.dashboard-layout');
+    if (layout) {
+      if (isDarkMode) {
+        layout.classList.add('light-theme');
+      } else {
+        layout.classList.remove('light-theme');
+      }
+    }
+    setIsDarkMode(!isDarkMode);
+  };
+
+  // Compute Metrics
+  const totalAssets = data.length;
+  const highRiskAssets = data.filter(a => a.risk_score > 0.7).length;
+  const overdueInspections = data.filter(a => a.overdue_ratio > 1.0).length;
+  const imminentFailures = data.filter(a => a.failure_within_30_days === 1).length;
+
+  // Sorting
+  const topPriorityAssets = [...data]
+    .sort((a, b) => b.final_priority_score - a.final_priority_score)
+    .slice(0, 4);
+
+  const recentAlerts = [...data]
+    .filter(a => a.condition_rating < 2.5)
+    .sort((a, b) => b.urgency_score - a.urgency_score)
+    .slice(0, 3);
+
+  // Group assets by zone for the chart
+  const zoneCounts: Record<string, number> = {};
+  data.forEach(a => {
+    if (a.zone) {
+      zoneCounts[a.zone] = (zoneCounts[a.zone] || 0) + 1;
+    }
+  });
+  
+  // Get top 6 zones for the chart
+  const topZones = Object.entries(zoneCounts)
+    .sort(([, countA], [, countB]) => countB - countA)
+    .slice(0, 6);
+
+  const maxZoneCount = topZones.length > 0 ? Math.max(...topZones.map(([, c]) => c)) : 1;
+
+  if (loading) {
+    return (
+      <div className="dashboard-home" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <h2 style={{ color: 'var(--text-muted)' }}>Loading Enterprise Asset Data...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-home" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#ef4444' }}>
+        <h2>Error: {error}</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-home">
-
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
+      {/* HEADER */}
       <header className="content-header">
-
         <div>
-
-          <p className="eyebrow">
-            RAILWAY OPERATIONS
-          </p>
-
-          <h1>
-            Dashboard Overview
-          </h1>
-
-          <p className="subtitle">
-            Monitor trains, railway traffic and live operations.
-          </p>
-
+          <p className="eyebrow">ASSET MAINTENANCE</p>
+          <h1>Dashboard Overview</h1>
+          <p className="subtitle">Monitor infrastructure health, risk scores, and block planning priorities.</p>
         </div>
-
-
         <div className="header-actions">
-
-          <button
-            className="notification"
-            onClick={() => navigate("/alerts")}
-            aria-label="Open alerts"
+          
+          {/* THEME TOGGLE */}
+          <button 
+            onClick={toggleTheme}
+            style={{
+              background: 'var(--bg-panel)',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-main)',
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.2rem',
+              transition: 'all 0.2s'
+            }}
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            🔔
+            {isDarkMode ? "☀️" : "🌙"}
           </button>
 
-
+          <button className="notification" onClick={() => navigate("/alerts")} aria-label="Open alerts">🔔</button>
           <div className="profile">
-
-            <div className="profile-avatar">
-              J
-            </div>
-
+            <div className="profile-avatar">J</div>
             <div>
-
-              <strong>
-                Jagat
-              </strong>
-
-              <span>
-                Administrator
-              </span>
-
+              <strong>Jagat</strong>
+              <span>Administrator</span>
             </div>
-
           </div>
-
         </div>
-
       </header>
 
-
-      {/* =================================================
-          SYSTEM STATUS
-      ================================================= */}
-
+      {/* SYSTEM STATUS */}
       <div className="system-bar">
-
         <div>
-
           <span className="online-dot"></span>
-
-          All railway systems operational
-
+          RailPravah Data Engine Online
         </div>
-
-        <span>
-          Last updated: Just now
-        </span>
-
+        <span>{totalAssets.toLocaleString()} Assets Synced</span>
       </div>
 
-
-      {/* =================================================
-          STAT CARDS
-      ================================================= */}
-
+      {/* STAT CARDS */}
       <div className="stats-grid">
-
-
-        {/* Active Trains */}
-
         <div className="stat-card">
-
-          <div className="stat-icon blue">
-            🚆
-          </div>
-
+          <div className="stat-icon blue">🏗️</div>
           <div>
-
-            <p>
-              Active Trains
-            </p>
-
-            <h2>
-              128
-            </h2>
-
-            <small className="positive">
-              ↑ 8.4% today
-            </small>
-
+            <p>Total Assets Monitored</p>
+            <h2>{totalAssets.toLocaleString()}</h2>
+            <small className="positive">Across all zones</small>
           </div>
-
         </div>
 
-
-        {/* On Time */}
-
         <div className="stat-card">
-
-          <div className="stat-icon green">
-            ✓
-          </div>
-
+          <div className="stat-icon orange">⚠️</div>
           <div>
-
-            <p>
-              On-Time Rate
-            </p>
-
-            <h2>
-              94%
-            </h2>
-
-            <small className="positive">
-              ↑ 2.1% today
-            </small>
-
+            <p>High Risk Assets</p>
+            <h2>{highRiskAssets.toLocaleString()}</h2>
+            <small className="negative">Risk Score &gt; 0.7</small>
           </div>
-
         </div>
 
-
-        {/* Delayed */}
-
         <div className="stat-card">
-
-          <div className="stat-icon orange">
-            ⏱
-          </div>
-
+          <div className="stat-icon purple">⏱</div>
           <div>
-
-            <p>
-              Delayed Trains
-            </p>
-
-            <h2>
-              17
-            </h2>
-
-            <small className="negative">
-              ↓ 3 from yesterday
-            </small>
-
+            <p>Overdue Inspections</p>
+            <h2>{overdueInspections.toLocaleString()}</h2>
+            <small className="negative">Ratio &gt; 1.0</small>
           </div>
-
         </div>
 
-
-        {/* Stations */}
-
         <div className="stat-card">
-
-          <div className="stat-icon purple">
-            🚉
-          </div>
-
+          <div className="stat-icon red" style={{ backgroundColor: '#fee2e2', color: '#ef4444' }}>🚨</div>
           <div>
-
-            <p>
-              Stations
-            </p>
-
-            <h2>
-              156
-            </h2>
-
-            <small className="positive">
-              All operational
-            </small>
-
+            <p>Imminent Failures (30d)</p>
+            <h2 style={{ color: '#ef4444' }}>{imminentFailures.toLocaleString()}</h2>
+            <small className="negative">Critical Intervention Required</small>
           </div>
-
         </div>
-
       </div>
 
-
-      {/* =================================================
-          MAIN GRID
-      ================================================= */}
-
+      {/* MAIN GRID */}
       <div className="main-grid">
-
-
-        {/* =================================================
-            TRAIN ACTIVITY
-        ================================================= */}
-
+        
+        {/* CHART SECTION */}
         <section className="panel activity-panel">
-
           <div className="panel-header">
-
             <div>
-
-              <h2>
-                Train Activity
-              </h2>
-
-              <p>
-                Train movement across the network
-              </p>
-
+              <h2>Asset Distribution by Zone</h2>
+              <p>Top 6 Zones by asset volume</p>
             </div>
-
-
-            <select>
-
-              <option>
-                Today
-              </option>
-
-              <option>
-                7 Days
-              </option>
-
-              <option>
-                30 Days
-              </option>
-
-            </select>
-
           </div>
-
-
-          {/* Chart */}
-
-          <div className="chart">
-
-            <div className="chart-values">
-
-              <span>150</span>
-
-              <span>100</span>
-
-              <span>50</span>
-
-              <span>0</span>
-
+          <div className="chart" style={{ padding: '2rem 0 1rem', height: '250px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', height: '100%', alignItems: 'flex-end', gap: '2rem', padding: '0 2rem' }}>
+              {topZones.map(([zone, count]) => (
+                <div key={zone} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600 }}>{count}</div>
+                  <div style={{ 
+                    width: '100%', 
+                    backgroundColor: '#3b82f6', 
+                    borderRadius: '4px 4px 0 0',
+                    height: `${(count / maxZoneCount) * 150}px`,
+                    transition: 'height 1s ease-out'
+                  }}></div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 500, textAlign: 'center' }}>
+                    {zone}
+                  </div>
+                </div>
+              ))}
             </div>
-
-
-            <div className="chart-body">
-
-              <div className="chart-line"></div>
-
-              <div className="chart-line line-two"></div>
-
-              <div className="chart-line line-three"></div>
-
-              <div className="chart-line line-four"></div>
-
-
-              <div className="bars">
-
-                <i style={{ height: "35%" }}></i>
-
-                <i style={{ height: "55%" }}></i>
-
-                <i style={{ height: "45%" }}></i>
-
-                <i style={{ height: "72%" }}></i>
-
-                <i style={{ height: "60%" }}></i>
-
-                <i style={{ height: "85%" }}></i>
-
-                <i style={{ height: "68%" }}></i>
-
-                <i style={{ height: "92%" }}></i>
-
-                <i style={{ height: "76%" }}></i>
-
-                <i style={{ height: "62%" }}></i>
-
-                <i style={{ height: "80%" }}></i>
-
-                <i style={{ height: "50%" }}></i>
-
-              </div>
-
-
-              <div className="chart-labels">
-
-                <span>6 AM</span>
-
-                <span>8 AM</span>
-
-                <span>10 AM</span>
-
-                <span>12 PM</span>
-
-                <span>2 PM</span>
-
-                <span>4 PM</span>
-
-                <span>6 PM</span>
-
-              </div>
-
-            </div>
-
           </div>
-
         </section>
 
-
-        {/* =================================================
-            LIVE TRAIN STATUS
-        ================================================= */}
-
+        {/* PRIORITY MAINTENANCE LIST */}
         <section className="panel">
-
           <div className="panel-header">
-
             <div>
-
-              <h2>
-                Live Train Status
-              </h2>
-
-              <p>
-                Currently running trains
-              </p>
-
+              <h2>Critical Maintenance Priorities</h2>
+              <p>Assets requiring immediate block allocation</p>
             </div>
-
-
-            <button
-              className="view-all"
-              onClick={() => navigate("/live-status")}
-            >
-              View All
-            </button>
-
+            <button className="view-all" onClick={() => navigate("/block-planning")}>Plan Blocks</button>
           </div>
-
-
-          <div className="train-list">
-
-
-            {/* Train 1 */}
-
-            <div className="train-row">
-
-              <div className="train-left">
-
-                <div className="train-icon">
-                  🚆
+          <div className="train-list" style={{ marginTop: '1rem' }}>
+            {topPriorityAssets.map(asset => (
+              <div className="train-row" key={asset.asset_id} style={{ padding: '12px 16px' }}>
+                <div className="train-left">
+                  <div className="train-icon" style={{ backgroundColor: '#fee2e2', color: '#ef4444' }}>🚨</div>
+                  <div>
+                    <strong>{asset.asset_id} • {asset.asset_type.replace(/_/g, ' ')}</strong>
+                    <span>{asset.zone} Zone • Risk: {asset.risk_score?.toFixed(2) || 'N/A'}</span>
+                  </div>
                 </div>
-
-                <div>
-
-                  <strong>
-                    12301 Rajdhani
-                  </strong>
-
-                  <span>
-                    Delhi → Howrah
-                  </span>
-
+                <div style={{ textAlign: 'right' }}>
+                  <label className="delayed" style={{ backgroundColor: '#ffedd5', color: '#ea580c' }}>
+                    Priority: {asset.final_priority_score?.toFixed(2) || 'N/A'}
+                  </label>
                 </div>
-
               </div>
-
-              <label className="running">
-                Running
-              </label>
-
-            </div>
-
-
-            {/* Train 2 */}
-
-            <div className="train-row">
-
-              <div className="train-left">
-
-                <div className="train-icon">
-                  🚆
-                </div>
-
-                <div>
-
-                  <strong>
-                    12951 Mumbai Rajdhani
-                  </strong>
-
-                  <span>
-                    Mumbai → Delhi
-                  </span>
-
-                </div>
-
-              </div>
-
-              <label className="delayed">
-                +12 min
-              </label>
-
-            </div>
-
-
-            {/* Train 3 */}
-
-            <div className="train-row">
-
-              <div className="train-left">
-
-                <div className="train-icon">
-                  🚆
-                </div>
-
-                <div>
-
-                  <strong>
-                    12841 Coromandel
-                  </strong>
-
-                  <span>
-                    Howrah → Chennai
-                  </span>
-
-                </div>
-
-              </div>
-
-              <label className="running">
-                Running
-              </label>
-
-            </div>
-
-
-            {/* Train 4 */}
-
-            <div className="train-row">
-
-              <div className="train-left">
-
-                <div className="train-icon">
-                  🚆
-                </div>
-
-                <div>
-
-                  <strong>
-                    12024 Jan Shatabdi
-                  </strong>
-
-                  <span>
-                    Patna → Howrah
-                  </span>
-
-                </div>
-
-              </div>
-
-              <label className="delayed">
-                +7 min
-              </label>
-
-            </div>
-
+            ))}
           </div>
-
         </section>
-
       </div>
 
-
-      {/* =================================================
-          BOTTOM GRID
-      ================================================= */}
-
+      {/* BOTTOM GRID */}
       <div className="bottom-grid">
-
-
-        {/* =================================================
-            RECENT ALERTS
-        ================================================= */}
-
-        <section className="panel">
-
+        
+        {/* RECENT ALERTS */}
+        <section className="panel" style={{ gridColumn: '1 / -1' }}>
           <div className="panel-header">
-
             <div>
-
-              <h2>
-                Recent Alerts
-              </h2>
-
-              <p>
-                Latest railway notifications
-              </p>
-
+              <h2>Critical Asset Alerts</h2>
+              <p>Based on poor condition ratings</p>
             </div>
-
-
-            <button
-              className="view-all"
-              onClick={() => navigate("/alerts")}
-            >
-              View All
-            </button>
-
+            <button className="view-all" onClick={() => navigate("/alerts")}>View All</button>
           </div>
-
-
-          <div className="alerts">
-
-
-            <div className="alert warning">
-
-              <span>
-                ⚠️
-              </span>
-
-              <div>
-
-                <strong>
-                  Train Delay
-                </strong>
-
-                <p>
-                  Train 12951 delayed by 12 minutes.
-                </p>
-
+          <div className="alerts" style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+            {recentAlerts.map(alert => (
+              <div className="alert warning" key={alert.asset_id}>
+                <span>⚠️</span>
+                <div>
+                  <strong>{alert.asset_type.replace(/_/g, ' ')} Degradation</strong>
+                  <p>{alert.asset_id} in {alert.zone} zone shows a poor condition rating of {alert.condition_rating?.toFixed(1) || 'N/A'}/5.</p>
+                </div>
               </div>
-
-            </div>
-
-
-            <div className="alert info">
-
-              <span>
-                ℹ️
-              </span>
-
-              <div>
-
-                <strong>
-                  Platform Change
-                </strong>
-
-                <p>
-                  Train 12301 moved to Platform 6.
-                </p>
-
-              </div>
-
-            </div>
-
-
-            <div className="alert success">
-
-              <span>
-                ✓
-              </span>
-
-              <div>
-
-                <strong>
-                  Track Clear
-                </strong>
-
-                <p>
-                  Track maintenance completed successfully.
-                </p>
-
-              </div>
-
-            </div>
-
+            ))}
+            {recentAlerts.length === 0 && (
+              <div style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'center' }}>No critical condition alerts.</div>
+            )}
           </div>
-
-        </section>
-
-
-        {/* =================================================
-            UPCOMING TRAINS
-        ================================================= */}
-
-        <section className="panel">
-
-          <div className="panel-header">
-
-            <div>
-
-              <h2>
-                Upcoming Trains
-              </h2>
-
-              <p>
-                Next scheduled departures
-              </p>
-
-            </div>
-
-
-            <button
-              className="view-all"
-              onClick={() => navigate("/search")}
-            >
-              Search
-            </button>
-
-          </div>
-
-
-          <div className="upcoming">
-
-
-            <div className="upcoming-row">
-
-              <div>
-
-                <strong>
-                  12302 Rajdhani Express
-                </strong>
-
-                <span>
-                  Howrah → New Delhi
-                </span>
-
-              </div>
-
-              <b>
-                22:45
-              </b>
-
-            </div>
-
-
-            <div className="upcoming-row">
-
-              <div>
-
-                <strong>
-                  12842 Coromandel Express
-                </strong>
-
-                <span>
-                  Chennai → Howrah
-                </span>
-
-              </div>
-
-              <b>
-                23:10
-              </b>
-
-            </div>
-
-
-            <div className="upcoming-row">
-
-              <div>
-
-                <strong>
-                  12023 Jan Shatabdi
-                </strong>
-
-                <span>
-                  Howrah → Patna
-                </span>
-
-              </div>
-
-              <b>
-                23:40
-              </b>
-
-            </div>
-
-          </div>
-
         </section>
 
       </div>
-
     </div>
   );
 }

@@ -68,8 +68,12 @@ export interface AssetsListResponse {
   assets: AssetData[];
 }
 
-const RAW_API_URL = ((import.meta as any).env?.VITE_API_BASE_URL as string) || 'https://railprava-backend-api-caller.onrender.com';
-const API_BASE_URL = RAW_API_URL.replace(/\/+$/, '');
+const RENDER_BACKEND_URL = 'https://railprava-backend-api-caller.onrender.com';
+const rawEnvUrl = (import.meta as any).env?.VITE_API_BASE_URL as string | undefined;
+
+// If Vercel has localhost:8000 saved or env is undefined, guarantee we use Render
+const rawUrl = (!rawEnvUrl || rawEnvUrl.includes('localhost')) ? RENDER_BACKEND_URL : rawEnvUrl;
+export const API_BASE_URL = rawUrl.replace(/\/+$/, '');
 
 /**
  * Check connectivity and latency to the PostgreSQL database.

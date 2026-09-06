@@ -1,15 +1,28 @@
+import { useMemo, useState } from "react";
+import { useAssetData } from "../contexts/AssetContext";
 import "./Dashboard.css";
 
+interface CorridorItem {
+  id: string;
+  name: string;
+  route: string;
+  distance: string;
+  trains: number;
+  zones: string[];
+}
+
 function CorridorMap() {
-  const corridors = [
+  const { data, dbHealth } = useAssetData();
+  const [filterStatus, setFilterStatus] = useState("All Corridors");
+
+  const baseCorridors: CorridorItem[] = [
     {
       id: "CR-001",
       name: "Howrah - New Delhi",
       route: "HWH → NDLS",
       distance: "1,445 km",
       trains: 38,
-      status: "Operational",
-      utilization: "86%",
+      zones: ["Eastern", "Northern"],
     },
     {
       id: "CR-002",
@@ -17,8 +30,7 @@ function CorridorMap() {
       route: "HWH → MAS",
       distance: "1,660 km",
       trains: 31,
-      status: "Operational",
-      utilization: "79%",
+      zones: ["Eastern", "Southern"],
     },
     {
       id: "CR-003",
@@ -26,8 +38,7 @@ function CorridorMap() {
       route: "SDAH → GHY",
       distance: "1,000 km",
       trains: 22,
-      status: "Maintenance",
-      utilization: "64%",
+      zones: ["Eastern", "NorthEastern"],
     },
     {
       id: "CR-004",
@@ -35,8 +46,7 @@ function CorridorMap() {
       route: "HWH → CSMT",
       distance: "1,968 km",
       trains: 27,
-      status: "Operational",
-      utilization: "72%",
+      zones: ["Eastern", "Western", "Central"],
     },
     {
       id: "CR-005",
@@ -44,137 +54,129 @@ function CorridorMap() {
       route: "KOAA → PNBE",
       distance: "532 km",
       trains: 19,
-      status: "Operational",
-      utilization: "68%",
+      zones: ["Eastern"],
     },
   ];
+
+  // Calculate live health metrics for each corridor based on PostgreSQL data
+  const corridors = useMemo(() => {
+    return baseCorridors.map((c) => {
+      const matchingAssets = data.filter((a) => c.zones.includes(a.zone));
+      const criticalCount = matchingAssets.filter(
+        (a) => a.failure_within_30_days === 1 || (a.condition_rating || 5) < 2.5
+      ).length;
+
+      const avgCond = matchingAssets.length > 0
+        ? matchingAssets.reduce((sum, a) => sum + (a.condition_rating || 0), 0) / matchingAssets.length
+        : 3.5;
+
+      const isMaintenance = criticalCount >= 4 || avgCond < 3.0;
+      const utilizationVal = Math.min(95, Math.max(55, Math.round(70 + (c.trains * 0.5) - (isMaintenance ? 10 : 0))));
+
+      return {
+        ...c,
+        status: isMaintenance ? "Maintenance" : "Operational",
+        utilization: `${utilizationVal}%`,
+        assetCount: matchingAssets.length,
+        criticalCount,
+        avgCondition: avgCond.toFixed(1),
+      };
+    });
+  }, [data]);
+
+  const filteredCorridors = corridors.filter((c) => {
+    if (filterStatus === "Operational") return c.status === "Operational";
+    if (filterStatus === "Maintenance") return c.status === "Maintenance";
+    return true;
+  });
+
+  const maintenanceCount = corridors.filter((c) => c.status === "Maintenance").length;
+  const operationalCount = corridors.filter((c) => c.status === "Operational").length;
 
   return (
     <div className="dashboard-home corridor-map-page">
 
       {/* ================= HEADER ================= */}
-
       <div className="content-header">
         <div>
           <h1>Corridor Map</h1>
-          <p>
-            Monitor railway corridors, routes and network utilization.
-          </p>
+          <p>Monitor railway corridors, telemetry health, and track possession status.</p>
         </div>
-
-        <button className="primary-btn">
-          + Add Corridor
-        </button>
       </div>
-
 
       {/* ================= SYSTEM STATUS ================= */}
-
-      <div className="system-bar">
-        <span className="system-dot"></span>
-
-        <span>
-          Network Mapping System Operational
-        </span>
-
+      <div className="system-bar" style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div>
+          <span className="system-dot" style={{ backgroundColor: dbHealth?.status === 'connected' ? '#10b981' : '#f59e0b' }}></span>
+          <span>
+            {dbHealth?.status === 'connected' ? 'Live Telemetry Active Across All Corridors' : 'Corridor Monitoring Active (Offline Mode)'}
+          </span>
+        </div>
         <span className="system-time">
-          Last updated: Just now
+          {corridors.length} High-Capacity Corridors Monitored
         </span>
       </div>
 
-
       {/* ================= STAT CARDS ================= */}
-
       <div className="stats-grid">
-
         <div className="stat-card">
           <div className="stat-info">
             <p>Active Corridors</p>
-            <h2>48</h2>
-            <span className="stat-positive">
-              Network wide
-            </span>
+            <h2>{corridors.length}</h2>
+            <span className="stat-positive">Trunk network routes</span>
           </div>
-
-          <div className="stat-icon">
-            🗺
-          </div>
+          <div className="stat-icon">🗺</div>
         </div>
-
 
         <div className="stat-card">
           <div className="stat-info">
-            <p>Active Routes</p>
-            <h2>156</h2>
-            <span>
-              Across all corridors
-            </span>
+            <p>Operational Corridors</p>
+            <h2>{operationalCount}</h2>
+            <span className="stat-positive">Optimal track conditions</span>
           </div>
-
-          <div className="stat-icon">
-            🛤
-          </div>
+          <div className="stat-icon">✓</div>
         </div>
-
 
         <div className="stat-card">
           <div className="stat-info">
-            <p>Network Utilization</p>
-            <h2>78%</h2>
-            <span className="stat-positive">
-              +4.2% this week
-            </span>
+            <p>Possession / Maintenance</p>
+            <h2>{maintenanceCount}</h2>
+            <span className="stat-negative">{maintenanceCount > 0 ? 'Active block possessions' : 'Clear'}</span>
           </div>
-
-          <div className="stat-icon">
-            📈
-          </div>
+          <div className="stat-icon">🔧</div>
         </div>
-
 
         <div className="stat-card">
           <div className="stat-info">
-            <p>Maintenance Zones</p>
-            <h2>6</h2>
-            <span className="stat-negative">
-              2 active
-            </span>
+            <p>Monitored Corridor Assets</p>
+            <h2>{data.length.toLocaleString()}</h2>
+            <span className="stat-positive">Synchronized from PostgreSQL</span>
           </div>
-
-          <div className="stat-icon">
-            🚧
-          </div>
+          <div className="stat-icon">🏗</div>
         </div>
-
       </div>
 
-
       {/* ================= MAP AREA ================= */}
-
       <div className="panel corridor-map-panel">
-
         <div className="panel-header">
-
           <div>
             <h3>Network Corridor Overview</h3>
-            <p>
-              Regional railway network activity and route distribution.
-            </p>
+            <p>Regional railway network route topology and real-time corridor condition.</p>
           </div>
 
-          <select className="filter-select">
+          <select
+            className="filter-select"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
             <option>All Corridors</option>
             <option>Operational</option>
             <option>Maintenance</option>
           </select>
-
         </div>
 
-
         <div className="corridor-map">
-
           <div className="map-grid">
-
             <div className="map-line line-one"></div>
             <div className="map-line line-two"></div>
             <div className="map-line line-three"></div>
@@ -208,209 +210,97 @@ function CorridorMap() {
               <span></span>
               <label>Chennai</label>
             </div>
-
           </div>
 
           <div className="map-legend">
-
             <span>
               <i className="legend-dot operational"></i>
               Operational
             </span>
-
             <span>
               <i className="legend-dot maintenance"></i>
-              Maintenance
+              Maintenance / Possession
             </span>
-
             <span>
               <i className="legend-dot station-dot"></i>
-              Station
+              Station Terminal
             </span>
-
           </div>
-
         </div>
-
       </div>
 
-
       {/* ================= CORRIDOR TABLE ================= */}
-
       <div className="panel corridor-table-panel">
-
         <div className="panel-header">
-
           <div>
-            <h3>Corridor Details</h3>
-            <p>
-              Current utilization and operational status.
-            </p>
+            <h3>Corridor Details & Infrastructure Health</h3>
+            <p>Live health metrics calculated from PostgreSQL assets along each corridor.</p>
           </div>
-
         </div>
 
-
         <div className="corridor-table-wrapper">
-
           <table className="corridor-table">
-
             <thead>
               <tr>
                 <th>CORRIDOR</th>
                 <th>ROUTE</th>
                 <th>DISTANCE</th>
-                <th>TRAINS</th>
+                <th>ACTIVE TRAINS</th>
+                <th>CORRIDOR ASSETS</th>
                 <th>UTILIZATION</th>
                 <th>STATUS</th>
               </tr>
             </thead>
-
-
             <tbody>
-
-              {corridors.map((corridor) => (
-
+              {filteredCorridors.map((corridor) => (
                 <tr key={corridor.id}>
+                  <td>
+                    <div className="corridor-name">{corridor.name}</div>
+                    <span className="corridor-id">{corridor.id}</span>
+                  </td>
 
                   <td>
-                    <div className="corridor-name">
-                      {corridor.name}
-                    </div>
+                    <span className="corridor-route">{corridor.route}</span>
+                  </td>
 
-                    <span className="corridor-id">
-                      {corridor.id}
+                  <td>
+                    <span className="corridor-distance">{corridor.distance}</span>
+                  </td>
+
+                  <td>
+                    <span className="corridor-trains">{corridor.trains}</span>
+                  </td>
+
+                  <td>
+                    <span>
+                      {corridor.assetCount} assets
+                      {corridor.criticalCount > 0 && (
+                        <small style={{ color: '#ef4444', display: 'block' }}>
+                          {corridor.criticalCount} critical
+                        </small>
+                      )}
                     </span>
                   </td>
 
                   <td>
-                    <span className="corridor-route">
-                      {corridor.route}
-                    </span>
-                  </td>
-
-                  <td>
-                    <span className="corridor-distance">
-                      {corridor.distance}
-                    </span>
-                  </td>
-
-                  <td>
-                    <span className="corridor-trains">
-                      {corridor.trains}
-                    </span>
-                  </td>
-
-                  <td>
-
                     <div className="utilization-wrapper">
-
                       <div className="utilization-bar">
-                        <span
-                          style={{
-                            width: corridor.utilization,
-                          }}
-                        ></span>
+                        <span style={{ width: corridor.utilization }}></span>
                       </div>
-
-                      <strong>
-                        {corridor.utilization}
-                      </strong>
-
+                      <strong>{corridor.utilization}</strong>
                     </div>
-
                   </td>
 
                   <td>
-                    <span
-                      className={`corridor-status ${corridor.status.toLowerCase()}`}
-                    >
+                    <span className={`corridor-status ${corridor.status.toLowerCase()}`}>
                       {corridor.status}
                     </span>
                   </td>
-
                 </tr>
-
               ))}
-
             </tbody>
-
           </table>
-
         </div>
-
-      </div>
-
-
-      {/* ================= BOTTOM SUMMARY ================= */}
-
-      <div className="bottom-grid corridor-summary">
-
-        <div className="panel">
-
-          <div className="panel-header">
-            <div>
-              <h3>Network Capacity</h3>
-              <p>Current corridor utilization</p>
-            </div>
-          </div>
-
-          <div className="upcoming-row">
-            <span>Average Utilization</span>
-            <strong className="stat-positive">
-              78%
-            </strong>
-          </div>
-
-          <div className="upcoming-row">
-            <span>Peak Utilization</span>
-            <strong>
-              91%
-            </strong>
-          </div>
-
-          <div className="upcoming-row">
-            <span>Available Capacity</span>
-            <strong>
-              22%
-            </strong>
-          </div>
-
-        </div>
-
-
-        <div className="panel">
-
-          <div className="panel-header">
-            <div>
-              <h3>Network Alerts</h3>
-              <p>Corridor related notifications</p>
-            </div>
-          </div>
-
-          <div className="upcoming-row">
-            <span>Active Maintenance</span>
-            <strong className="stat-negative">
-              2
-            </strong>
-          </div>
-
-          <div className="upcoming-row">
-            <span>Route Conflicts</span>
-            <strong>
-              3
-            </strong>
-          </div>
-
-          <div className="upcoming-row">
-            <span>Network Status</span>
-            <strong className="stat-positive">
-              Normal
-            </strong>
-          </div>
-
-        </div>
-
       </div>
 
     </div>

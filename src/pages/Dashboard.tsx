@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import Logo from "../components/Logo";
+import DatabaseStatusBanner from "../components/DatabaseStatusBanner";
 import "./Dashboard.css";
 
 function Dashboard() {
@@ -44,43 +45,6 @@ function Dashboard() {
           </NavLink>
 
 
-          {/* ================= TRAIN OPERATIONS ================= */}
-
-          <NavLink
-            to="/train-operations"
-            className={({ isActive }) =>
-              `nav-item ${isActive ? "active" : ""}`
-            }
-          >
-            <span>🚆</span>
-            Train Operations
-          </NavLink>
-
-
-          {/* ================= TRAIN SEARCH ================= */}
-
-          <NavLink
-            to="/search"
-            className={({ isActive }) =>
-              `nav-item ${isActive ? "active" : ""}`
-            }
-          >
-            <span>🔎</span>
-            Train Search
-          </NavLink>
-
-
-          {/* ================= LIVE STATUS ================= */}
-
-          <NavLink
-            to="/live-status"
-            className={({ isActive }) =>
-              `nav-item ${isActive ? "active" : ""}`
-            }
-          >
-            <span>🚆</span>
-            Live Status
-          </NavLink>
 
 
           {/* ================= ANALYTICS ================= */}
@@ -247,9 +211,8 @@ function Dashboard() {
       ===================================================== */}
 
       <main className="dashboard-content">
-
+        <DatabaseStatusBanner />
         <Outlet />
-
       </main>
 
     </div>

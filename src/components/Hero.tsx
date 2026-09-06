@@ -8,33 +8,32 @@ function Hero() {
       <div className="hero-content">
 
         <p className="hero-tag">
-          🚆 SMART RAILWAY EXPERIENCE
+          ⚡ AI INFRASTRUCTURE & PREDICTIVE SAFETY
         </p>
 
         <h1>
-          Your Journey,
-          <span> Simplified.</span>
+          Railway Assets,
+          <span> Optimized.</span>
         </h1>
 
         <p className="hero-description">
-          Search trains, check live status, and plan your journey
-          with RailPravah.
+          Monitor 10,000+ railway assets live from PostgreSQL, predict critical degradation with XGBoost, and coordinate traffic block planning.
         </p>
 
         <div className="hero-buttons">
 
           <Link
-            to="/search"
+            to="/dashboard"
             className="hero-primary-btn"
           >
-            Search Trains
+            Enter Dashboard
           </Link>
 
           <Link
-            to="/live-status"
+            to="/defects-assets"
             className="hero-secondary-btn"
           >
-            Check Live Status
+            Inspect Assets
           </Link>
 
         </div>

@@ -4,6 +4,7 @@ import {
   BrowserRouter,
   Routes,
   Route,
+  Navigate,
 } from "react-router-dom";
 
 import Landing from "./pages/Landing";
@@ -12,13 +13,10 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import DashboardHome from "./pages/DashboardHome";
 
-import TrainSearch from "./pages/TrainSearch";
-import LiveStatus from "./pages/LiveStatus";
 import Analytics from "./pages/Analytics";
 import Alerts from "./pages/Alerts";
 import Settings from "./pages/Settings";
 
-import TrainOperations from "./pages/TrainOperations";
 import MaintenanceRequests from "./pages/MaintenanceRequests";
 import DefectsAssets from "./pages/DefectsAssets";
 import BlockPlanning from "./pages/BlockPlanning";
@@ -55,23 +53,10 @@ function App() {
             element={<DashboardHome />}
           />
 
-          {/* Train Operations */}
-          <Route
-            path="/train-operations"
-            element={<TrainOperations />}
-          />
-
-          {/* Train Search */}
-          <Route
-            path="/search"
-            element={<TrainSearch />}
-          />
-
-          {/* Live Status */}
-          <Route
-            path="/live-status"
-            element={<LiveStatus />}
-          />
+          {/* Redirects for removed passenger timetable routes */}
+          <Route path="/train-operations" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/search" element={<Navigate to="/defects-assets" replace />} />
+          <Route path="/live-status" element={<Navigate to="/dashboard" replace />} />
 
           {/* Analytics */}
           <Route

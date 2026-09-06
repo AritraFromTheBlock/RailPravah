@@ -68,7 +68,8 @@ export interface AssetsListResponse {
   assets: AssetData[];
 }
 
-const API_BASE_URL = ((import.meta as any).env?.VITE_API_BASE_URL as string) || 'http://localhost:8000';
+const RAW_API_URL = ((import.meta as any).env?.VITE_API_BASE_URL as string) || 'https://railprava-backend-api-caller.onrender.com';
+const API_BASE_URL = RAW_API_URL.replace(/\/+$/, '');
 
 /**
  * Check connectivity and latency to the PostgreSQL database.

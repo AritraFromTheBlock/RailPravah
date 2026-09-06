@@ -115,7 +115,7 @@ function DashboardHome() {
             PostgreSQL Database Disconnected
           </h2>
           <p style={{ color: 'var(--text-muted, #94a3b8)', lineHeight: 1.6, marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-            The live database at <code style={{ color: '#f87171' }}>http://localhost:8000</code> is currently offline or unreachable.
+            The live database at <code style={{ color: '#f87171' }}>https://railprava-backend-api-caller.onrender.com</code> is currently offline or unreachable.
             Auto-fallback is disabled so old training data is not loaded into your workspace without your permission.
           </p>
 

@@ -265,7 +265,7 @@ export const DatabaseStatusBanner: React.FC = () => {
             </span>
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted, #94a3b8)', marginTop: '2px' }}>
-            Backend at <code style={{ color: '#f87171' }}>http://localhost:8000</code> is unreachable. Auto-fallback is <strong>OFF</strong>.
+            Backend at <code style={{ color: '#f87171' }}>https://railprava-backend-api-caller.onrender.com</code> is unreachable. Auto-fallback is <strong>OFF</strong>.
           </div>
         </div>
       </div>
